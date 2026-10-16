@@ -9,7 +9,6 @@ import androidx.core.view.ancestors
 import androidx.recyclerview.widget.RecyclerView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import org.koitharu.kotatsu.core.util.ext.resolveDp
-import kotlin.math.roundToInt
 
 class WebtoonImageView @JvmOverloads constructor(
 	context: Context,
@@ -52,7 +51,9 @@ class WebtoonImageView @JvmOverloads constructor(
 		if (!isReady) {
 			return 0
 		}
-		val totalHeight = (sHeight * width / sWidth.toFloat()).roundToInt()
+		// Rounded exactly as onMeasure rounds the view height. Rounding these two differently gave short
+		// pages a 1px inner scroll and tall ones a last row that never showed - a hairline at the join.
+		val totalHeight = (sHeight.toDouble() / sWidth.toDouble() * width).toInt()
 		return (totalHeight - height).coerceAtLeast(0)
 	}
 
