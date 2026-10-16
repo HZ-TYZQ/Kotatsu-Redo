@@ -71,7 +71,7 @@ class JxlImageDecoder(
 			result: SourceFetchResult,
 			options: Options,
 			imageLoader: ImageLoader
-		): Decoder? = if (isApplicable(result)) {
+		): Decoder? = if (isApplicable(result) && JxlSupport.isAvailable) {
 			JxlImageDecoder(result.source, options)
 		} else {
 			null

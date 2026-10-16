@@ -110,7 +110,7 @@ object BitmapDecoderCompat {
 	@Blocking
 	fun estimateDecodedSize(file: File): Long {
 		val guess = file.length() * 2
-		if (!isJxl(file)) {
+		if (!isJxl(file) || !JxlSupport.isAvailable) {
 			return guess
 		}
 		val size = runCatchingCancellable { JxlCoder.getSize(file.readBytes()) }.getOrNull() ?: return guess
@@ -169,6 +169,9 @@ object BitmapDecoderCompat {
 	}
 
 	private fun decodeJxl(bytes: ByteArray, isMutable: Boolean = false): Bitmap {
+		if (!JxlSupport.isAvailable) {
+			throw ImageDecodeException(null, FORMAT_JXL, "JPEG XL is not supported on this device")
+		}
 		// 8-bit RGBA whatever the source depth: a HARDWARE or F16 bitmap cannot be re-encoded to PNG
 		// by the reader's conversion fallback the same way
 		val bitmap = JxlCoder.decode(bytes, PreferredColorConfig.RGBA_8888, ScaleMode.FIT)

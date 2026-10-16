@@ -109,6 +109,7 @@ class WebtoonImageView @JvmOverloads constructor(
 		super.onDownSamplingChanged()
 		if (isReady) {
 			adjustScale()
+			applyScroll()
 			onImageEventListener.onReady()
 		}
 	}
@@ -116,6 +117,28 @@ class WebtoonImageView @JvmOverloads constructor(
 	override fun onReady() {
 		super.onReady()
 		adjustScale()
+		applyScroll()
+	}
+
+	override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+		super.onSizeChanged(w, h, oldw, oldh)
+		applyScroll()
+	}
+
+	/**
+	 * Shows the image at [scrollPos], whatever SSIV would have done on its own.
+	 *
+	 * SSIV centres a newly decoded image, and keeps that centre when the view is resized. A webtoon
+	 * page is positioned from its top instead, so wherever the image becomes ready or the view
+	 * changes size, the position has to be applied again here. This was missing for pages
+	 * RecyclerView prefetches: they decode while detached and still zero-sized, the scroll asked for
+	 * then could not be applied, and the page came on screen showing its middle - everything above
+	 * that line skipped, which is the cut readers saw where two pages meet.
+	 */
+	private fun applyScroll() {
+		if (canScale()) {
+			scrollToInternal(scrollPos.coerceIn(0, getScrollRange()))
+		}
 	}
 
 	/**
@@ -129,11 +152,16 @@ class WebtoonImageView @JvmOverloads constructor(
 
 	private fun scrollToInternal(pos: Int) {
 		if (!canScale()) {
-			scrollPos = 0
+			// Kept rather than dropped, so applyScroll can put it into effect once the view can
+			scrollPos = pos.coerceAtLeast(0)
 			return
 		}
 		minScale = width / sWidth.toFloat()
 		maxScale = minScale
+		// The width-fit mode too, not just its value: a page decoded while still zero-sized never got
+		// it from adjustScale, and SSIV's default would fit the whole page inside the view instead -
+		// a long strip shrunk to a sliver in the middle of the screen
+		minimumScaleType = SCALE_TYPE_CUSTOM
 		scrollPos = pos
 		ct.set(sWidth / 2f, (height / 2f + pos.toFloat()) / minScale)
 		setScaleAndCenter(minScale, ct)
